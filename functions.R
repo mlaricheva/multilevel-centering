@@ -1,0 +1,112 @@
+### GENERATING DATA ###
+
+generate_data<-function(ICC,corr,gamma){
+  
+  group_size <-10
+  num_groups <- 50
+  meanx1<-0.1 #rnorm(1) variance is higher than mean
+  meanx2<-1.1 #rnorm(1) variance is lower than mean
+  sigma1 <- matrix(c(1,corr,corr,1),2,2) #generating cov matrix
+  x1x2<-mvrnorm(n=group_size*num_groups, mu = c(meanx1,meanx2), Sigma=sigma1)
+  x1<-x1x2[,1] # generating level 1 predictors
+  x2<-x1x2[,2]
+  cor(x1,x2)
+  
+  g01<-rnorm(num_groups) # generating level 2 predictors
+  g02<-rnorm(num_groups)
+  id<-rep(1:(group_size*num_groups)) # generating id
+  g_id <- as.factor(rep(1:num_groups, each = group_size))
+  g1<-rep(g01, each = group_size)
+  g2<-rep(g02, each = group_size)
+  X<-cbind(id,g_id,x1,x2,g1,g2) # generating matrix
+  
+  varL1 <- 1 # variances on levels 1 and 2
+  varL2 <-ICC/(1-ICC)
+  
+  #cov = cor*sqrt(var1*var2) = cor*sqrt(var2^2) = cor*var2
+  
+  sigma_u <- rbind(c(varL2,0*varL2,0*varL2), c(0*varL2,varL2,0*varL2), c(0*varL2,0*varL2,varL2))
+  u <- mvrnorm(n=num_groups, mu=c(0,0,0), Sigma = sigma_u)
+  u0j<-u[,1]
+  u1j<-u[,2]
+  u2j<-u[,3]
+  
+  beta0j <- rep(gamma[["gamma00"]],num_groups) + gamma[["gamma01"]]*g01 + gamma[["gamma02"]]*g02 + u0j # betas
+  beta1j <- rep(gamma[["gamma10"]],num_groups) + gamma[["gamma11"]]*g01 + gamma[["gamma12"]]*g02 + u1j
+  beta2j <- rep(gamma[["gamma20"]],num_groups) + gamma[["gamma21"]]*g01 + gamma[["gamma22"]]*g02 + u2j
+  
+  eps<-rnorm(group_size*num_groups)
+  
+  y<-1+beta0j+beta1j*x1+beta2j*x2+eps
+  
+  data1 <- data.frame(y, x1, x2, g_id, g1, g2)
+  
+  return(data1)
+}
+
+### TESTING MODELS ###
+
+get_coef_bias<-function(res,gamma){
+  bias<-list("g00"=res[1,1]-gamma[["gamma00"]],
+             "g01"=res[3,1]-gamma[["gamma01"]],
+             "g02"=res[4,1]-gamma[["gamma02"]],
+             "g10"=res[2,1]-gamma[["gamma10"]],
+             "g11"=res[6,1]-gamma[["gamma11"]],
+             "g12"=res[7,1]-gamma[["gamma12"]],
+             "g20"=res[5,1]-gamma[["gamma20"]],
+             "g21"=res[8,1]-gamma[["gamma21"]],
+             "g22"=res[9,1]-gamma[["gamma22"]])
+  return(bias)
+}
+
+get_mse<-function(res,gamma){
+  mse<-list("g00"=colMeans((coef(model1)[1]-gamma[["gamma00"]])^2)[[1]],
+            "g10"=colMeans((coef(model1)[2]-gamma[["gamma10"]])^2)[[1]],
+            "g20"=colMeans((coef(model1)[5]-gamma[["gamma20"]])^2)[[1]])
+  return(mse)
+}
+
+raw_model<-function(data1,gamma){
+  model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-2,msTol=1e-2,tol=1e-2,check.conv.singular = .makeCC(action = "ignore", tol=1e-2)))
+  res1<-coef(summary(model1))
+  raw.bias<-get_coef_bias(res1, gamma)
+  raw.mse<-get_mse(res1,gamma)
+  raw.coef<-as.list(res1[,1])
+  raw.se<-as.list(res1[,2])
+  return(list(raw.bias,raw.mse,raw.coef,raw.se))
+} 
+
+cgm_cent<-function(data1){
+  data1$x1.cgm<-data1$x1-mean(data1$x1)
+  data1$x2.cgm<-data1$x2-mean(data1$x2)
+  data1$g1.cgm<-data1$g1-mean(data1$g1)
+  data1$g2.cgm<-data1$g2-mean(data1$g2)
+  return(data1)
+} 
+
+cgm_model<-function(data1,gamma){
+  model2 <- lme(y~1+x1.cgm*g1+x1.cgm*g2+x2.cgm*g1+x2.cgm*g2, random= ~ 1+x1.cgm+x2.cgm|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,msTol=1e-6,tol=1e-7,check.conv.singular = .makeCC(action = "ignore", tol=1e-7)))
+  res2 <- coef(summary(model2))
+  cgm.bias<-get_coef_bias(res2, gamma)
+  cgm.mse<-get_mse(res2,gamma)
+  cgm.coef<-as.list(res2[,1])
+  cgm.se<-as.list(res2[,2])
+  return(list(cgm.bias,cgm.mse,cgm.coef, cgm.se))
+}
+
+cwc_cent<-function(data1){
+  data_cwc<-data1 %>%
+    group_by(g_id) %>% 
+    mutate(x1.cwc = x1-mean(x1), x2.cwc = x2-mean(x2))
+  return(data_cwc)
+}
+
+cwc_model<-function(data1,gamma){
+  model3 <- lme(y~1+x1.cwc*g1+x1.cwc*g2+x2.cwc*g1+x2.cwc*g2, random= ~ 1+x1.cwc+x2.cwc|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,msTol=1e-6,tol=1e-7,check.conv.singular = .makeCC(action = "ignore", tol=1e-7)))
+  res3 <- coef(summary(model3))
+  cwc.bias<-get_coef_bias(res3, gamma)
+  cwc.mse<-get_mse(res3,gamma)
+  cwc.coef<-as.list(res3[,1])
+  cwc.se<-as.list(res3[,2])
+  return(list(cwc.bias,cwc.mse,cwc.coef, cwc.se))
+}
