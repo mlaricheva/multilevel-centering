@@ -7,11 +7,26 @@ source("functions.R")
 
 ICC <- 0.3
 corr <- 0.7
+
+group_size <-10
+num_groups <- 50
+
 gamma<-rep(1,9)
 names(gamma)<-c("gamma00", "gamma01", "gamma02", "gamma10","gamma11","gamma12","gamma20", "gamma21", "gamma22")
 
-sample_data<-generate_data(ICC,corr,gamma)
+sample_data<-generate_data(group_size, num_groups, ICC,corr,gamma)
 raw.res<-raw_model(sample_data,gamma)
+conv_check(sample_data)
+
+repeat{
+  sample_data<-generate_data(group_size, num_groups, ICC,corr,gamma)
+  flag=conv_check(sample_data)
+  if(flag){
+    print("over")
+    break
+  }
+}
+
 cgm.sample_data<-cgm_cent(sample_data)
 cgm.res<-cgm_model(cgm.sample_data,gamma)
 cwc.sample_data<-cwc_cent(sample_data)

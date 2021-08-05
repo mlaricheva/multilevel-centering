@@ -1,9 +1,19 @@
 ### GENERATING DATA ###
 
-generate_data<-function(ICC,corr,gamma){
+conv_check<-function(data){
+  flag=0
+  tryCatch(model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data,
+                         control=lmeControl(opt='optim',tolerance=1e-5,
+                                            check.conv.singular = .makeCC(action = "ignore", tol=1e-5))), 
+           error=function(c){
+    flag=1
+  })
+  return(flag)
+}
+
+
+generate_data<-function(group_size, num_groups,ICC,corr,gamma){
   
-  group_size <-10
-  num_groups <- 50
   meanx1<-0.1 #rnorm(1) variance is higher than mean
   meanx2<-1.1 #rnorm(1) variance is lower than mean
   sigma1 <- matrix(c(1,corr,corr,1),2,2) #generating cov matrix
@@ -70,10 +80,10 @@ raw_model<-function(data1,gamma){
   model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-2,msTol=1e-2,tol=1e-2,check.conv.singular = .makeCC(action = "ignore", tol=1e-2)))
   res1<-coef(summary(model1))
   raw.bias<-get_coef_bias(res1, gamma)
-  raw.mse<-get_mse(res1,gamma)
+  #raw.mse<-get_mse(res1,gamma)
   raw.coef<-as.list(res1[,1])
   raw.se<-as.list(res1[,2])
-  return(list(raw.bias,raw.mse,raw.coef,raw.se))
+  return(list(raw.bias,raw.coef,raw.se))
 } 
 
 cgm_cent<-function(data1){
