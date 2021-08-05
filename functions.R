@@ -51,6 +51,16 @@ generate_data<-function(group_size, num_groups,ICC,corr,gamma){
   
   data1 <- data.frame(y, x1, x2, g_id, g1, g2)
   
+  # check convergence and rerun recursively if not met
+  if(conv_check(data1)){
+    repeat{
+      data1<-generate_data(group_size, num_groups, ICC,corr,gamma)
+      if(!conv_check(data1)){
+        break
+      }
+    }
+  }
+  
   return(data1)
 }
 
@@ -79,11 +89,7 @@ get_mse<-function(res,gamma){
 raw_model<-function(data1,gamma){
   model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-2,msTol=1e-2,tol=1e-2,check.conv.singular = .makeCC(action = "ignore", tol=1e-2)))
   res1<-coef(summary(model1))
-  raw.bias<-get_coef_bias(res1, gamma)
-  #raw.mse<-get_mse(res1,gamma)
-  raw.coef<-as.list(res1[,1])
-  raw.se<-as.list(res1[,2])
-  return(list(raw.bias,raw.coef,raw.se))
+  return(res1)
 } 
 
 cgm_cent<-function(data1){
@@ -97,11 +103,7 @@ cgm_cent<-function(data1){
 cgm_model<-function(data1,gamma){
   model2 <- lme(y~1+x1.cgm*g1+x1.cgm*g2+x2.cgm*g1+x2.cgm*g2, random= ~ 1+x1.cgm+x2.cgm|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,msTol=1e-6,tol=1e-7,check.conv.singular = .makeCC(action = "ignore", tol=1e-7)))
   res2 <- coef(summary(model2))
-  cgm.bias<-get_coef_bias(res2, gamma)
-  cgm.mse<-get_mse(res2,gamma)
-  cgm.coef<-as.list(res2[,1])
-  cgm.se<-as.list(res2[,2])
-  return(list(cgm.bias,cgm.mse,cgm.coef, cgm.se))
+  return(res2)
 }
 
 cwc_cent<-function(data1){
@@ -114,9 +116,6 @@ cwc_cent<-function(data1){
 cwc_model<-function(data1,gamma){
   model3 <- lme(y~1+x1.cwc*g1+x1.cwc*g2+x2.cwc*g1+x2.cwc*g2, random= ~ 1+x1.cwc+x2.cwc|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,msTol=1e-6,tol=1e-7,check.conv.singular = .makeCC(action = "ignore", tol=1e-7)))
   res3 <- coef(summary(model3))
-  cwc.bias<-get_coef_bias(res3, gamma)
-  cwc.mse<-get_mse(res3,gamma)
-  cwc.coef<-as.list(res3[,1])
-  cwc.se<-as.list(res3[,2])
-  return(list(cwc.bias,cwc.mse,cwc.coef, cwc.se))
+  return(res3)
 }
+
