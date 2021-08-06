@@ -11,8 +11,7 @@ conv_check<-function(data){
   return(flag)
 }
 
-
-generate_data<-function(group_size, num_groups,ICC,corr,gamma){
+generate_data<-function(group_size, num_groups,ICC,corr,gamma, checkConv=TRUE){
   
   meanx1<-0.1 #rnorm(1) variance is higher than mean
   meanx2<-1.1 #rnorm(1) variance is lower than mean
@@ -51,14 +50,16 @@ generate_data<-function(group_size, num_groups,ICC,corr,gamma){
   
   data1 <- data.frame(y, x1, x2, g_id, g1, g2)
   
-  # check convergence and rerun recursively if not met
-  if(conv_check(data1)){
+  # check convergence and rerun recursively if not met for one of the models
+  if(checkConv){
+  if(conv_check(data1) | conv_check(cgm_cent(data1)) | conv_check(cwc_cent(data1))){
     repeat{
       data1<-generate_data(group_size, num_groups, ICC,corr,gamma)
-      if(!conv_check(data1)){
+      if(!conv_check(data1) & !conv_check(cgm_cent(data1)) & !conv_check(cwc_cent(data1))){
         break
       }
     }
+  }
   }
   
   return(data1)
@@ -87,7 +88,7 @@ get_mse<-function(res,gamma){
 }
 
 raw_model<-function(data1,gamma){
-  model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-2,msTol=1e-2,tol=1e-2,check.conv.singular = .makeCC(action = "ignore", tol=1e-2)))
+  model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
   res1<-coef(summary(model1))
   return(res1)
 } 
@@ -101,7 +102,7 @@ cgm_cent<-function(data1){
 } 
 
 cgm_model<-function(data1,gamma){
-  model2 <- lme(y~1+x1.cgm*g1+x1.cgm*g2+x2.cgm*g1+x2.cgm*g2, random= ~ 1+x1.cgm+x2.cgm|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,msTol=1e-6,tol=1e-7,check.conv.singular = .makeCC(action = "ignore", tol=1e-7)))
+  model2 <- lme(y~1+x1.cgm*g1+x1.cgm*g2+x2.cgm*g1+x2.cgm*g2, random= ~ 1+x1.cgm+x2.cgm|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
   res2 <- coef(summary(model2))
   return(res2)
 }
@@ -114,7 +115,7 @@ cwc_cent<-function(data1){
 }
 
 cwc_model<-function(data1,gamma){
-  model3 <- lme(y~1+x1.cwc*g1+x1.cwc*g2+x2.cwc*g1+x2.cwc*g2, random= ~ 1+x1.cwc+x2.cwc|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,msTol=1e-6,tol=1e-7,check.conv.singular = .makeCC(action = "ignore", tol=1e-7)))
+  model3 <- lme(y~1+x1.cwc*g1+x1.cwc*g2+x2.cwc*g1+x2.cwc*g2, random= ~ 1+x1.cwc+x2.cwc|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
   res3 <- coef(summary(model3))
   return(res3)
 }
