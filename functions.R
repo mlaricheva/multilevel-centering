@@ -1,14 +1,27 @@
 ### GENERATING DATA ###
 
 conv_check<-function(data){
-  flag=0
-  tryCatch(model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data,
-                         control=lmeControl(opt='optim',tolerance=1e-5,
-                                            check.conv.singular = .makeCC(action = "ignore", tol=1e-5))), 
+  out_raw<-tryCatch(length(raw_model(data)), 
            error=function(c){
-    flag=1
+    print("Raw model is not converging. Restarting simulation")
+    return(0)
   })
-  return(flag)
+  out_cgm<-tryCatch(length(cgm_model(cgm_cent(data))), 
+           error=function(c){
+    print("Cgm model is not converging. Restarting simulation")
+    return(0)
+           })
+  out_cwc<-tryCatch(length(cwc_model(cwc_cent(data))), 
+           error=function(c){
+    print("Cwc modelis not converging. Restarting simulation")
+    return(0)
+           })
+  if (out_raw == 0 | out_cgm == 0 | out_cwc == 0){
+    return(0)
+  }
+  else{
+    return(1)
+  }
 }
 
 generate_data<-function(group_size, num_groups,ICC,corr,gamma, checkConv=TRUE){
@@ -51,15 +64,13 @@ generate_data<-function(group_size, num_groups,ICC,corr,gamma, checkConv=TRUE){
   data1 <- data.frame(y, x1, x2, g_id, g1, g2)
   
   # check convergence and rerun recursively if not met for one of the models
-  if(checkConv){
-  if(conv_check(data1) | conv_check(cgm_cent(data1)) | conv_check(cwc_cent(data1))){
+  if(conv_check(data1) == 0){
     repeat{
       data1<-generate_data(group_size, num_groups, ICC,corr,gamma)
-      if(!conv_check(data1) & !conv_check(cgm_cent(data1)) & !conv_check(cwc_cent(data1))){
+      if(conv_check(data1)>0){
         break
       }
     }
-  }
   }
   
   return(data1)
@@ -88,7 +99,7 @@ get_mse<-function(res,gamma){
 }
 
 raw_model<-function(data1,gamma){
-  model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
+  model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data1,control=lmeControl(opt='optim',tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
   res1<-coef(summary(model1))
   return(res1)
 } 
@@ -102,7 +113,7 @@ cgm_cent<-function(data1){
 } 
 
 cgm_model<-function(data1,gamma){
-  model2 <- lme(y~1+x1.cgm*g1+x1.cgm*g2+x2.cgm*g1+x2.cgm*g2, random= ~ 1+x1.cgm+x2.cgm|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
+  model2 <- lme(y~1+x1.cgm*g1+x1.cgm*g2+x2.cgm*g1+x2.cgm*g2, random= ~ 1+x1.cgm+x2.cgm|g_id, data = data1,control=lmeControl(opt='optim',tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
   res2 <- coef(summary(model2))
   return(res2)
 }
@@ -115,7 +126,7 @@ cwc_cent<-function(data1){
 }
 
 cwc_model<-function(data1,gamma){
-  model3 <- lme(y~1+x1.cwc*g1+x1.cwc*g2+x2.cwc*g1+x2.cwc*g2, random= ~ 1+x1.cwc+x2.cwc|g_id, data = data1,control=lmeControl(opt='optim',returnObject=TRUE,tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
+  model3 <- lme(y~1+x1.cwc*g1+x1.cwc*g2+x2.cwc*g1+x2.cwc*g2, random= ~ 1+x1.cwc+x2.cwc|g_id, data = data1,control=lmeControl(opt='optim',tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
   res3 <- coef(summary(model3))
   return(res3)
 }

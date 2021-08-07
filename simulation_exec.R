@@ -48,6 +48,20 @@ simulation_run<- function(){
   return(0)
 }
 
-replicate(n = 500, simulation_run(),simplify = FALSE)
+for(i in 1:100){
+  seed<-sample.int(100, 1)
+  print(seed)
+  set.seed(seed)
+  simulation_run()
+  print("New seed")
+  seed<-sample.int(100, 1)
+  print(seed)
+}
+
+### For testing purposes
+set.seed(7)
+simulation_run()
+
+replicate(n = 100, simulation_run(),simplify = FALSE)
 
 raw.coef<-read.table("./data/raw_coef.csv", sep = ",", col.names=F)  
