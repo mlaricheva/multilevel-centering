@@ -25,7 +25,7 @@ conv_check<-function(data){
 }
 
 generate_data<-function(group_size, num_groups,ICC,corr,gamma, checkConv=TRUE){
-  
+  names(gamma)<-c("gamma00", "gamma01", "gamma02", "gamma10","gamma11","gamma12","gamma20", "gamma21", "gamma22")
   meanx1<-0.1 #rnorm(1) variance is higher than mean
   meanx2<-1.1 #rnorm(1) variance is lower than mean
   sigma1 <- matrix(c(1,corr,corr,1),2,2) #generating cov matrix
