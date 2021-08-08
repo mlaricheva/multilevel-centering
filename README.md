@@ -11,7 +11,7 @@ Level-2:&nbsp;&nbsp;&nbsp;![equation](https://latex.codecogs.com/gif.latex?%5C%5
 
   
   
-The models were fitted using *lme4* package. 
+The models were fitted using *nlme* package. 
   
 
 Two Level-1 predictors are generated randomly with means of 0.1 and 1.1 and variance of 1. Both Level-2 predictors have means of 1 and variance of 1.  
@@ -36,8 +36,8 @@ raw.data <- generate_data(group_size=10, num_groups=50, ICC=0.3,corr=0.7,gamma=r
 High correlation between predictors may cause non-convergence. By default, *generate_data* function checks if the system is singular.  
   
 ``` r
->>> set.seed(7)
->>> generate_data(group_size=10, num_groups=50, ICC=0.3,corr=0.7,gamma=rep(1,9))
+> set.seed(7)
+> generate_data(group_size=10, num_groups=50, ICC=0.3,corr=0.7,gamma=rep(1,9))
 
 [1] "Cgm model is not converging. Restarting simulation"
               y            x1            x2 g_id          g1         g2
@@ -47,4 +47,26 @@ High correlation between predictors may cause non-convergence. By default, *gene
 ...
 ```
 
+Convergence check can be also done using *conv_check* function. If function returns 0, then convergence is not met.  
+  
+``` r
+> sample_data<-generate_data(group_size=10, num_groups=50, ICC=0.3,corr=0.7,gamma=rep(1,9))
+> conv_check(sample_data)
+[1] 1
+```
+
+### Centering ###
+  
+*cgm_cent(data)* and *cwc_cent(data)* perform grand mean centering group mean centering of Level-1 predictors respectively. *Note:* new columns with *cgm* and *cwc* preffixes are added to the existing data.  
+
+``` r
+> cwc_data<-cwc_cent(sample_data)
+```
+### Models ###
+
+*raw_model(data), cgm_model(data) and cwc_model(data)* are used to get model objects. 
+``` r
+> raw_model<-raw_model(sample_data)
+> cwc_model<-cwc_cent(sample_data)
+```
 
