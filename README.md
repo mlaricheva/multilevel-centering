@@ -57,16 +57,22 @@ Convergence check can be also done using *conv_check* function. If function retu
 
 ### Centering ###
   
-*cgm_cent(data)* and *cwc_cent(data)* perform grand mean centering group mean centering of Level-1 predictors respectively. *Note:* new columns with *cgm* and *cwc* preffixes are added to the existing data.  
+*cgm_cent(data)* and *cwc_cent(data)* perform grand mean centering group mean centering of Level-1 predictors respectively. 
 
 ``` r
 > cwc_data<-cwc_cent(sample_data)
 ```
-### Models ###
+### Building a model ###
 
-*raw_model(data), cgm_model(data) and cwc_model(data)* are used to get model objects. 
+*mlm_model(data)* function is used to get a *lme* model object. 
 ``` r
 > raw_model<-raw_model(sample_data)
 > cwc_model<-cwc_cent(sample_data)
 ```
-
+### Running a simulation ###
+  
+To run a simulation, use *simulation_run()* function to generate raw data and get the parameters' estimates of raw scores, grand mean centered and group mean centered models. The results would be added to corresponding csv-files in ```/data``` folder. Can be used together with *replicate* to get a desired number of observations. Returns 0 if fininshed sucessfully.  
+``` r
+> replicate(n = 100, simulation_run(), simplify = FALSE)
+```
+### Calculate bias, MSE and relative change ###
