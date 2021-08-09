@@ -116,4 +116,37 @@ cwc_cent<-function(data1){
   return(data_cwc)
 }
 
-
+simulation_run<- function(){
+  start.time <- Sys.time()
+  ### preparing and saving raw data
+  raw.data<-generate_data(group_size, num_groups, ICC,corr,gamma)
+  suppressWarnings(write.table(data.frame(raw.data), "./data/rawdata.csv", sep = ",",row.names = FALSE, col.names = !file.exists("./data/rawdata.csv"), append = T))
+  
+  ### raw model
+  raw.res<-mlm_model(raw.data)
+  raw.coef<-raw.res[,1]
+  suppressWarnings(write.table(data.frame(t(raw.coef)), "./data/raw_coef.csv",row.names = FALSE, sep = ",", col.names = !file.exists("./data/raw_coef.csv"), append = T))
+  raw.se<-raw.res[,2]
+  suppressWarnings(write.table(data.frame(t(raw.se)), "./data/raw_se.csv", sep = ",", row.names = FALSE,col.names = !file.exists("./data/raw_se.csv"), append = T))
+  
+  ### cgm model
+  cgm.data<-cgm_cent(raw.data)
+  cgm.res<-mlm_model(cgm.data)
+  cgm.coef<-cgm.res[,1]
+  suppressWarnings(write.table(data.frame(t(cgm.coef)), "./data/cgm_coef.csv", sep = ",", row.names = FALSE,col.names = !file.exists("./data/cgm_coef.csv"), append = T))
+  cgm.se<-cgm.res[,2]
+  suppressWarnings(write.table(data.frame(t(cgm.se)), "./data/cgm_se.csv", sep = ",",row.names = FALSE, col.names = !file.exists("./data/cgm_se.csv"), append = T))
+  
+  ### cwc model
+  cwc.data<-cwc_cent(raw.data)
+  cwc.res<-mlm_model(cwc.data)
+  cwc.coef<-cwc.res[,1]
+  suppressWarnings(write.table(data.frame(t(cwc.coef)), "./data/cwc_coef.csv", sep = ",", row.names = FALSE,col.names = !file.exists("./data/cwc_coef.csv"), append = T))
+  cwc.se<-cwc.res[,2]
+  suppressWarnings(write.table(data.frame(t(cwc.se)), "./data/cwc_se.csv", sep = ",",row.names = FALSE, col.names = !file.exists("./data/cwc_se.csv"), append = T))
+  
+  end.time <- Sys.time()
+  time.taken <- end.time - start.time
+  print(paste0("Simulation finished. Time taken: ",round(time.taken,3), "s"))
+  return(0)
+}
