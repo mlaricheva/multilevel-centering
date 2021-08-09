@@ -79,55 +79,41 @@ generate_data<-function(group_size, num_groups,ICC,corr,gamma, checkConv=TRUE){
 ### TESTING MODELS ###
 
 get_coef_bias<-function(res,gamma){
-  bias<-list("g00"=res[1,1]-gamma[["gamma00"]],
-             "g01"=res[3,1]-gamma[["gamma01"]],
-             "g02"=res[4,1]-gamma[["gamma02"]],
-             "g10"=res[2,1]-gamma[["gamma10"]],
-             "g11"=res[6,1]-gamma[["gamma11"]],
-             "g12"=res[7,1]-gamma[["gamma12"]],
-             "g20"=res[5,1]-gamma[["gamma20"]],
-             "g21"=res[8,1]-gamma[["gamma21"]],
-             "g22"=res[9,1]-gamma[["gamma22"]])
+  bias<-apply(apply(res, 1, function(x) x-gamma),1,function(x) mean(x))
   return(bias)
 }
 
-get_mse<-function(res,gamma){
-  mse<-list("g00"=colMeans((coef(model1)[1]-gamma[["gamma00"]])^2)[[1]],
-            "g10"=colMeans((coef(model1)[2]-gamma[["gamma10"]])^2)[[1]],
-            "g20"=colMeans((coef(model1)[5]-gamma[["gamma20"]])^2)[[1]])
+get_coef_mse<-function(res,gamma){
+  mse<-apply(apply(res, 1, function(x) (x-gamma)^2),1,function(x) mean(x))
   return(mse)
 }
 
-raw_model<-function(data1,gamma){
+get_rel_change<-function(raw, cent.data){
+  for (param in names(raw)){
+    (cent.data[param]-raw[param])/raw[param]
+    rel.change[param]<-apply(apply(res[param], 1, function(x) (x-gamma)^2),1,function(x) mean(x))
+  }
+}
+
+mlm_model<-function(data1){
   model1 <- lme(y~1+x1*g1+x1*g2+x2*g1+x2*g2, random= ~ 1+x1+x2|g_id, data = data1,control=lmeControl(opt='optim',tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
   res1<-coef(summary(model1))
   return(res1)
 } 
 
 cgm_cent<-function(data1){
-  data1$x1.cgm<-data1$x1-mean(data1$x1)
-  data1$x2.cgm<-data1$x2-mean(data1$x2)
-  data1$g1.cgm<-data1$g1-mean(data1$g1)
-  data1$g2.cgm<-data1$g2-mean(data1$g2)
+  data1$x1<-data1$x1-mean(data1$x1)
+  data1$x2<-data1$x2-mean(data1$x2)
+  data1$g1<-data1$g1-mean(data1$g1)
+  data1$g2<-data1$g2-mean(data1$g2)
   return(data1)
 } 
-
-cgm_model<-function(data1,gamma){
-  model2 <- lme(y~1+x1.cgm*g1+x1.cgm*g2+x2.cgm*g1+x2.cgm*g2, random= ~ 1+x1.cgm+x2.cgm|g_id, data = data1,control=lmeControl(opt='optim',tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
-  res2 <- coef(summary(model2))
-  return(res2)
-}
 
 cwc_cent<-function(data1){
   data_cwc<-data1 %>%
     group_by(g_id) %>% 
-    mutate(x1.cwc = x1-mean(x1), x2.cwc = x2-mean(x2))
+    mutate(x1 = x1-mean(x1), x2 = x2-mean(x2))
   return(data_cwc)
 }
 
-cwc_model<-function(data1,gamma){
-  model3 <- lme(y~1+x1.cwc*g1+x1.cwc*g2+x2.cwc*g1+x2.cwc*g2, random= ~ 1+x1.cwc+x2.cwc|g_id, data = data1,control=lmeControl(opt='optim',tolerance=1e-5,check.conv.singular = .makeCC(action = "ignore", tol=1e-5)))
-  res3 <- coef(summary(model3))
-  return(res3)
-}
 
