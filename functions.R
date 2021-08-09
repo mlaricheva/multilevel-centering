@@ -90,9 +90,9 @@ get_coef_mse<-function(res,gamma){
 
 get_rel_change<-function(raw, cent.data){
   for (param in names(raw)){
-    (cent.data[param]-raw[param])/raw[param]
-    rel.change[param]<-apply(apply(res[param], 1, function(x) (x-gamma)^2),1,function(x) mean(x))
+    rel.change[param]<-(cent.data[param]-raw[param])/raw[param]
   }
+  return(rel.change)
 }
 
 mlm_model<-function(data1){
