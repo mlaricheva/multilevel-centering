@@ -76,3 +76,13 @@ To run a simulation, use *simulation_run()* function to generate raw data and ge
 > replicate(n = 100, simulation_run(), simplify = FALSE)
 ```
 ### Calculate bias, MSE and relative change ###
+
+To calculate bias, use *get_coef_bias()* function that takes two sets of parameters as an input (e.g. your raw coefficients and original gamma vector):
+``` r
+> coef.bias<-get_coef_bias(raw.coef,gamma)
+```
+Similar functions are avaliable for MSE and relative change:
+``` r
+> coef.mse<-get_coef_mse(raw.coef,gamma)
+> cgm.relchange<-get_rel_change(raw.coef,cgm.coef)
+```
